@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 .vscode
-src/huobi_Python
+huobi_Python
 src/config.py
 src/aa.py
 # C extensions

@@ -8,6 +8,8 @@ cd src && git clone git@github.com:HuobiRDCenter/huobi_Python.git
 ```bash
 cd src 
 python3 main.py
+# or
+./run.sh
 ```
 
 ## firebibibi
