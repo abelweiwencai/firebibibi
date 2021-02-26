@@ -2,6 +2,8 @@ import time
 from datetime import datetime
 from huobi.client.market import MarketClient
 from huobi.constant import CandlestickInterval
+import config
+from utils import DingTalkClient
 
 
 def _get_interval_seconds(self):
@@ -85,6 +87,7 @@ class Strategy:
         self.interval_seconds = _get_interval_seconds(self=self)
         self.min_get_interval = min_get_interval
         self.need_print = True
+        self.ding_talk_client = DingTalkClient(url=config.REMIND_DING_TALK_WEBHOOK)
         
     def _get_client(self):
         market_client = MarketClient(init_log=True)
@@ -146,11 +149,15 @@ class Strategy:
             self._print(f'反向连续次数不够，实际：{self.curr_direction_status.continuous_times}，标准：{self.dimension.reverse_trigger_times}')
             return
 
+        if self.curr_direction_status.continuous_times > self.dimension.reverse_trigger_times + self.dimension.remain_times:
+            print(f'超出下单提醒次数，不提醒')
         if self.curr_direction_status.continuous_times < self.dimension.reverse_trigger_times + self.dimension.remain_times:
-            self._order()
+            self._remind()
     
-    def _order(self):
-        print('卧槽好时机，下单了****************')
+    def _remind(self):
+        msg = f'{self.symbol} 卧槽好时机，下单了****************'
+        self.ding_talk_client.send_to_group(content=msg, msg_type='text')
+        print(msg)
 
     def _print(self, content):
         if self.need_print:

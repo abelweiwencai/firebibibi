@@ -5,7 +5,7 @@ __pycache__/
 
 .vscode
 huobi_Python
-src/config.py
+src/local.py
 src/aa.py
 # C extensions
 *.so
