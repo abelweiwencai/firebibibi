@@ -1,9 +1,10 @@
 import time
 from datetime import datetime
-from huobi.client.market import MarketClient
-from huobi.constant import CandlestickInterval
 import config
 from utils import DingTalkClient
+
+from huobi.client.market import MarketClient
+from huobi.constant import CandlestickInterval
 
 
 def _get_interval_seconds(self):
@@ -93,8 +94,18 @@ class Strategy:
         market_client = MarketClient(init_log=True)
         return market_client
 
-    def get_quote(self, size):
+    @staticmethod
+    def _print_quote(quote, symbole):
+        print(f'{symbole}，{datetime.fromtimestamp(quote.id)}，open：{quote.open}，close：{quote.close}，high：{quote.high}，low：{quote.low}')
+    
+    def _print_quote_list(self, quote_list):
+        for q in quote_list:
+            self._print_quote(q, self.symbol)
+
+    def get_quote(self, size=2):
         list_obj = self.client.get_candlestick(self.symbol, self.interval, size)
+        list_obj.reverse()
+        self._print_quote_list(list_obj)
         return list_obj
 
     def _handle_quote(self, quote):
@@ -169,7 +180,7 @@ class Strategy:
         curr_timestamp = int(time.time())
         print('next time: ', datetime.fromtimestamp(next_quote_timeStamp))
         print('curr time: ', datetime.fromtimestamp(curr_timestamp))
-        delta_seconds = next_quote_timeStamp - curr_timestamp
+        delta_seconds = next_quote_timeStamp + self.interval_seconds - curr_timestamp  # 当前时刻只能获取前一根线的数据，所以要再加一次 self.interval_seconds
         print('delta seconds: ', delta_seconds)
         if delta_seconds > self.interval_seconds:  # sleep时间小于一个tick时间，说明少了一根线，马上获取行情
             return 0
@@ -179,13 +190,12 @@ class Strategy:
     def run(self):
         while True:
             try:
-                list_obj = self.get_quote(size=1)
+                list_obj = self.get_quote()
             except Exception as e:
                 print(e)
                 print(f'获取行情失败，{self.min_get_interval} 秒后再次获取。\n')
                 time.sleep(self.min_get_interval)
                 continue
-
             obj = list_obj[0]
             self._handle_quote(obj)
             if self.has_new:
@@ -201,6 +211,16 @@ class Strategy:
 
 
 if __name__ == '__main__':
-    dimension = StrategyDimension(direction=Direction.DIRECTION_DOWN, trigger_times=4, reverse_trigger_times=1, remind_times=2)
-    s = Strategy(symbol='ethusdt', interval=CandlestickInterval.MIN1, dimension=dimension, min_get_interval=2)
+    dimension = StrategyDimension(
+        direction=Direction.DIRECTION_DOWN,
+        trigger_times=4,
+        reverse_trigger_times=1,
+        remind_times=2
+    )
+    s = Strategy(
+        symbol='ethusdt',
+        interval=CandlestickInterval.MIN1,
+        dimension=dimension,
+        min_get_interval=2
+    )
     s.run()
