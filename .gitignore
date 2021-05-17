@@ -5,6 +5,7 @@ __pycache__/
 
 .vscode
 huobi_Python
+huobi_Golang
 src/local.py
 src/aa.py
 # C extensions

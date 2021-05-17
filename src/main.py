@@ -89,6 +89,9 @@ class Strategy:
         self.min_get_interval = min_get_interval
         self.need_print = True
         self.ding_talk_client = DingTalkClient(url=config.REMIND_DING_TALK_WEBHOOK)
+        self.ma = 0
+        self.has_send_ma_msg = False
+        self.curr_quote = None
         
     def _get_client(self):
         market_client = MarketClient(init_log=True)
@@ -103,9 +106,12 @@ class Strategy:
             self._print_quote(q, self.symbol)
 
     def get_quote(self, size=2):
+        print('开始请求行情')
         list_obj = self.client.get_candlestick(self.symbol, self.interval, size)
+        print('请求行情成功')
         list_obj.reverse()
-        self._print_quote_list(list_obj)
+        self._print_quote_list(list_obj[-2:])
+        self.curr_quote = list_obj[-2]
         return list_obj
 
     def _handle_quote(self, quote):
@@ -186,18 +192,36 @@ class Strategy:
             return 0
         else:
             return delta_seconds
-       
+    def get_ma(self, quote_list):
+        close_list = []
+        for q in quote_list:
+            close_list.append(q.close)
+        self.ma = sum(close_list) / len(close_list)
+        return self.ma
+    
+    def handle_ma_strategy(self):
+        print(f'MA：{self.ma}，CLOSE：{self.curr_quote.close}')
+        if self.curr_quote.close > self.ma:
+            if not self.has_send_ma_msg:
+                msg = f'MA策略发，250分钟MA大于收盘价。250MA：{self.ma}，当前收盘：{self.curr_quote.close}'
+                self.ding_talk_client.send_to_group(content=msg)
+                self.has_send_ma_msg = True
+        else:
+            self.has_send_ma_msg = False
+
     def run(self):
         while True:
             try:
-                list_obj = self.get_quote()
+                list_obj = self.get_quote(size=251)
             except Exception as e:
                 print(e)
                 print(f'获取行情失败，{self.min_get_interval} 秒后再次获取。\n')
                 time.sleep(self.min_get_interval)
                 continue
-            obj = list_obj[0]
-            self._handle_quote(obj)
+            self.get_ma(list_obj[:-1])
+            self.handle_ma_strategy()
+            pre_close = list_obj[-2]  # 最后一条行情是当前分钟的，收盘价是当前价格，不准确，所以要获取前一分钟的收盘价计算
+            self._handle_quote(pre_close)
             if self.has_new:
                 self.handle_trade_strategy()
             seconds = self._get_sleep_seconds()
