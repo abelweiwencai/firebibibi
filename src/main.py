@@ -196,19 +196,19 @@ class Strategy:
         close_list = []
         for q in quote_list:
             close_list.append(q.close)
-        self.ma = sum(close_list) / len(close_list)
+        self.ma = round(sum(close_list) / len(close_list), 2)
         return self.ma
     
     def handle_ma_strategy(self):
         print(f'MA：{self.ma}，CLOSE：{self.curr_quote.close}')
         if self.curr_quote.close > self.ma:
             if not self.has_send_ma_msg:
-                msg = f'MA策略触发，收盘价突破250分钟MA。250MA：{self.ma}，当前收盘：{self.curr_quote.close}'
+                msg = f'MA策略触发，收盘价突破250分钟MA。{self.symbol} 250MA：{self.ma}，当前收盘：{self.curr_quote.close}'
                 self.ding_talk_client.send_to_group(content=msg)
                 self.has_send_ma_msg = True
         else:
             if self.has_send_ma_msg:
-                msg = f'收盘价跌破，250分钟MA。250MA：{self.ma}，当前收盘：{self.curr_quote.close}'
+                msg = f'收盘价跌破，250分钟MA。{self.symbol} 250MA：{self.ma}，当前收盘：{self.curr_quote.close}'
                 self.ding_talk_client.send_to_group(content=msg)
                 self.has_send_ma_msg = False
 
