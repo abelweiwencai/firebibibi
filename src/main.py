@@ -203,11 +203,14 @@ class Strategy:
         print(f'MA：{self.ma}，CLOSE：{self.curr_quote.close}')
         if self.curr_quote.close > self.ma:
             if not self.has_send_ma_msg:
-                msg = f'MA策略发，250分钟MA大于收盘价。250MA：{self.ma}，当前收盘：{self.curr_quote.close}'
+                msg = f'MA策略触发，收盘价突破250分钟MA。250MA：{self.ma}，当前收盘：{self.curr_quote.close}'
                 self.ding_talk_client.send_to_group(content=msg)
                 self.has_send_ma_msg = True
         else:
-            self.has_send_ma_msg = False
+            if self.has_send_ma_msg:
+                msg = f'收盘价跌破，250分钟MA。250MA：{self.ma}，当前收盘：{self.curr_quote.close}'
+                self.ding_talk_client.send_to_group(content=msg)
+                self.has_send_ma_msg = False
 
     def run(self):
         while True:
